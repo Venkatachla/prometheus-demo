@@ -1,0 +1,61 @@
+name: Prometheus CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  build-and-monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Start Node Application
+      run: |
+        node app.js &
+        sleep 10
+
+    - name: Download Prometheus
+      run: |
+        wget https://github.com/prometheus/prometheus/releases/download/v2.52.0/prometheus-2.52.0.linux-amd64.tar.gz
+        
+        tar xvf prometheus-2.52.0.linux-amd64.tar.gz
+
+    - name: Start Prometheus
+      run: |
+        cd prometheus-2.52.0.linux-amd64
+        
+        cp ../../prometheus.yml .
+        
+        ./prometheus --config.file=prometheus.yml &
+        
+        sleep 15
+
+    - name: Verify App Metrics
+      run: |
+        curl http://localhost:3000/metrics
+
+    - name: Verify Prometheus
+      run: |
+        curl http://localhost:9090
+
+    - name: Verify Prometheus Targets
+      run: |
+        curl http://localhost:9090/api/v1/targets
+
+    - name: Success Message
+      run: |
+        echo "Prometheus Monitoring Pipeline Executed Successfully"
